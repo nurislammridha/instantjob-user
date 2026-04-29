@@ -9,7 +9,7 @@ import user from '../assets/icons/user.png'
 import userActive from '../assets/icons/profileSelected.png'
 import PrimaText from './PrimaText'
 
-const ACTIVE_COLOR = '#FFCA00'
+const ACTIVE_COLOR = '#0062E3'
 
 const styles = StyleSheet.create({
     container: {
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8
     },
     itemActive: {
-        backgroundColor: 'rgba(255, 202, 0, 0.14)'
+        backgroundColor: 'rgba(0, 98, 227, 0.14)'
     },
     img: {
         width: 24,
@@ -84,7 +84,7 @@ const Footer = ({ navigation, route }) => {
                         style={[styles.img, isLiveRideRoute ? styles.ridesActiveIcon : styles.ridesInactiveIcon]}
                     />
                     <PrimaText
-                        content='Rides'
+                        content='Jobs'
                         weight='500'
                         size={14}
                         color={isLiveRideRoute ? ACTIVE_COLOR : '#fff'}

@@ -28,7 +28,7 @@ const MyRomygo = ({ left = 20 }) => {
                     <View style={styles.item} key={index}>
                         <Image source={img} style={styles.img} />
                         <PrimaText
-                            content='Romygo Difference'
+                            content='My Service History'
                             color='#2A2A38'
                             weight='500'
                             size={14}

@@ -37,7 +37,7 @@ const PrimaHeaderBackup = ({
     bottom = 0,
     leftIcon = null,
     rightIcon = null,
-    content = "Ride with Romygo",
+    content = "Work with InstantJob",
     isRightIcon = true,
     isContent = true,
     navigation,

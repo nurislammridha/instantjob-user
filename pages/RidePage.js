@@ -66,7 +66,7 @@ const RidePage = ({ navigation, route }) => {
                     onChange={(e) => navigation.navigate('LiveRide', { from: "goingInput" })}
                 />
                 <PrimaText
-                    content='Trending Hotspots'
+                    content='Our Services'
                     weight='600'
                     size={14}
                     color='#2A2A38'
@@ -78,11 +78,11 @@ const RidePage = ({ navigation, route }) => {
                         width='auto'
                         height={41}
                         radius={20}
-                        bgColor='#FFCA00'
-                        color='#2A2A38'
+                        bgColor='#1A1788'
+                        color='#FFF'
                         weight='500'
                         size={14}
-                        content='Palas Mall'
+                        content='Instant Job'
                         right={10}
                         ph={10}
                     />
@@ -90,11 +90,11 @@ const RidePage = ({ navigation, route }) => {
                         width='auto'
                         height={41}
                         radius={20}
-                        bgColor='#FFCA00'
-                        color='#2A2A38'
+                        bgColor='#1A1788'
+                        color='#FFF'
                         weight='500'
                         size={14}
-                        content='Luilus Mall'
+                        content='Schedule Job'
                         right={10}
                         ph={10}
                     />
@@ -102,18 +102,18 @@ const RidePage = ({ navigation, route }) => {
                         width='auto'
                         height={41}
                         radius={20}
-                        bgColor='#FFCA00'
-                        color='#2A2A38'
+                        bgColor='#1A1788'
+                        color='#FFF'
                         weight='500'
                         size={14}
-                        content='Salina Turda'
+                        content='Post your Job'
                         right={10}
                         ph={10}
                     />
                 </View>
                 <PrimaText
                     color='#2A2A38'
-                    content='Romygo Promotions'
+                    content='Promotions'
                     weight='600'
                     size={14}
                     top={20}
@@ -122,7 +122,7 @@ const RidePage = ({ navigation, route }) => {
                 />
                 <Image source={rom} style={styles.img} />
                 <PrimaText
-                    content='My Romygo'
+                    content='My InstantJob'
                     top={20}
                     color='#2A2A38'
                     weight='600'

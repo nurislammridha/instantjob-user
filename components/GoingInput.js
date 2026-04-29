@@ -46,7 +46,7 @@ const GoingInput = ({
                 value={value}
                 onChangeText={onChange}
                 style={styles.input}
-                placeholder='Going to'
+                placeholder='How can we help you?'
             />
         </View>
     )

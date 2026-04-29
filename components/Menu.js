@@ -99,7 +99,7 @@ const Menu = ({ closeSlider, navigation, route, user }) => {
                     <View style={styles.item}>
                         <Image source={watch} style={styles.itemImg} />
                         <PrimaText
-                            content='Ride History'
+                            content='Job History'
                             color='#2A2A38'
                             weight='500'
                             size={14}
@@ -116,7 +116,7 @@ const Menu = ({ closeSlider, navigation, route, user }) => {
                     <View style={styles.item}>
                         <Image source={love} style={styles.itemImg} />
                         <PrimaText
-                            content='Favourite Locations '
+                            content='Favourite Jobs '
                             color='#2A2A38'
                             weight='500'
                             size={14}
