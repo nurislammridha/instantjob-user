@@ -63,9 +63,24 @@ const PrimaHeaderBackup = ({
             useNativeDriver: true,
         }).start();
     };
+
+    const handleLeftPress = () => {
+        if (routeName === "Ride") {
+            openSlider();
+            return;
+        }
+
+        if (navigation?.canGoBack?.()) {
+            navigation.goBack();
+            return;
+        }
+
+        openSlider();
+    };
+
     return (<View style={styles.con}>
         <View style={{ ...styles.container, marginLeft: left, marginRight: right, marginBottom: bottom }}>
-            <TouchableOpacity onPress={() => routeName === "Ride" ? openSlider() : navigation.goBack()}><Image source={leftIcon == null ? menu : leftIcon} style={styles.img} /></TouchableOpacity>
+            <TouchableOpacity onPress={handleLeftPress}><Image source={leftIcon == null ? menu : leftIcon} style={styles.img} /></TouchableOpacity>
 
             {isContent && <PrimaText
                 content={content}

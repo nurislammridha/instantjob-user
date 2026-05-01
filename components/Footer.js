@@ -2,7 +2,7 @@ import React from 'react'
 import { Image, Platform, StyleSheet, TouchableOpacity, View } from 'react-native'
 import home from '../assets/icons/home.png'
 import homeActive from '../assets/icons/homeSelected.png'
-import car from '../assets/icons/car.png'
+import instant from '../assets/icons/watch.png'
 import activity from '../assets/icons/activity.png'
 import activityActive from '../assets/icons/activitySelected.png'
 import user from '../assets/icons/user.png'
@@ -58,21 +58,21 @@ const styles = StyleSheet.create({
 
 const Footer = ({ navigation, route }) => {
     const { name: routeName } = route || {}
-    const isRideRoute = routeName === 'Ride'
+    const isHomeRoute = routeName === 'Home'
     const isLiveRideRoute = routeName === 'LiveRide'
     const isActivitiesRoute = routeName === 'Activities'
     const isProfileRoute = routeName === 'Profile'
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity activeOpacity={0.85} style={styles.tabButton} onPress={() => navigation.navigate('Ride')}>
-                <View style={[styles.item, isRideRoute && styles.itemActive]}>
-                    <Image source={isRideRoute ? homeActive : home} style={styles.img} />
+            <TouchableOpacity activeOpacity={0.85} style={styles.tabButton} onPress={() => navigation.navigate('Home')}>
+                <View style={[styles.item, isHomeRoute && styles.itemActive]}>
+                    <Image source={isHomeRoute ? homeActive : home} style={styles.img} />
                     <PrimaText
                         content='Home'
                         weight='500'
                         size={14}
-                        color={isRideRoute ? ACTIVE_COLOR : '#fff'}
+                        color={isHomeRoute ? ACTIVE_COLOR : '#fff'}
                         top={5}
                     />
                 </View>
@@ -80,11 +80,11 @@ const Footer = ({ navigation, route }) => {
             <TouchableOpacity activeOpacity={0.85} style={styles.tabButton} onPress={() => navigation.navigate('LiveRide')}>
                 <View style={[styles.item, isLiveRideRoute && styles.itemActive]}>
                     <Image
-                        source={car}
+                        source={instant}
                         style={[styles.img, isLiveRideRoute ? styles.ridesActiveIcon : styles.ridesInactiveIcon]}
                     />
                     <PrimaText
-                        content='Jobs'
+                        content='Instant Hire'
                         weight='500'
                         size={14}
                         color={isLiveRideRoute ? ACTIVE_COLOR : '#fff'}

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Image, StyleSheet, TextInput, View } from 'react-native'
-import pointer from '../assets/icons/pointer.png'
+import search from '../assets/icons/search.png'
 const styles = StyleSheet.create({
     container: {
         display: 'flex',
@@ -39,7 +39,7 @@ const GoingInput = ({
                 zIndex: 1,
                 left: 10,
             }}>
-                <Image source={pointer} style={styles.img} />
+                <Image source={search} style={styles.img} />
             </View>
 
             <TextInput

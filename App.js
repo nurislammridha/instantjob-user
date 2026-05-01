@@ -4,7 +4,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import RidePage from './pages/RidePage';
+
+import Home from './pages/Home';
 
 const Stack = createStackNavigator();
 
@@ -16,13 +17,13 @@ const App = () => {
       {/* <AppInitializer /> */}
       <NavigationContainer>
         <Stack.Navigator
-          initialRouteName={"Ride"} //Home Ride
+          initialRouteName={"Home"} //Home Ride
           // headerMode="none"
           screenOptions={{ headerShown: false }} // hide header for all screens
         >
           <Stack.Screen
-            name="Ride"
-            component={RidePage}
+            name="Home"
+            component={Home}
           />
         </Stack.Navigator>
       </NavigationContainer>
