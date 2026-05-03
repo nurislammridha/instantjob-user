@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 
 import Home from './pages/Home';
+import InstantHirePage from './pages/InstantHirePage.js';
 
 const Stack = createStackNavigator();
 
@@ -24,6 +25,10 @@ const App = () => {
           <Stack.Screen
             name="Home"
             component={Home}
+          />
+          <Stack.Screen
+            name="LiveRide"
+            component={InstantHirePage}
           />
         </Stack.Navigator>
       </NavigationContainer>
