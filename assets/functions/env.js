@@ -1,2 +1,6 @@
-// export const rootUrl = "https://www.topketch.com/v1/"
-export const rootUrl = "https://app.romygo.com/api/v1/"
+// Android emulator uses 10.0.2.2 to reach the host machine's localhost
+// For physical device, replace with your machine's local IP (e.g. http://192.168.1.x:5000)
+
+// export const rootUrl = "http://192.168.0.108:8086/v1/api/";
+export const rootUrl = "https://instantjob-api.onrender.com/v1/api/";
+// export const rootUrl = "http://192.168.0.108:8086/v1/api/";

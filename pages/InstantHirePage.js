@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
         borderTopColor: '#E4EFF9'
     },
     sendBtn: { height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-    sendBtnActive: { backgroundColor: '#FFCA00' },
+    sendBtnActive: { backgroundColor: '#0A5CC1' },
     sendBtnDim: { backgroundColor: '#EEF3FA' },
     sendBtnTextActive: { fontSize: 16, fontWeight: '700', color: '#1A2C45' },
     sendBtnTextDim: { fontSize: 16, fontWeight: '700', color: '#A8BEDB' }
@@ -587,107 +587,107 @@ const InstantHirePage = ({ navigation, route }) => {
                 />
 
                 <MapView
-                        ref={mapRef}
-                        style={StyleSheet.absoluteFillObject}
-                        initialRegion={mapRegion}
-                        onPress={handleMapPress}
-                    >
-                        <Marker
-                            coordinate={serviceLocation}
-                            draggable
-                            onDragEnd={handleMarkerDragEnd}
-                            title='Service location'
-                        />
-                    </MapView>
+                    ref={mapRef}
+                    style={StyleSheet.absoluteFillObject}
+                    initialRegion={mapRegion}
+                    onPress={handleMapPress}
+                >
+                    <Marker
+                        coordinate={serviceLocation}
+                        draggable
+                        onDragEnd={handleMarkerDragEnd}
+                        title='Service location'
+                    />
+                </MapView>
 
-                    {/* Panel pinned above footer */}
-                    <View style={styles.panel}>
-                        {/* Select service location */}
+                {/* Panel pinned above footer */}
+                <View style={styles.panel}>
+                    {/* Select service location */}
+                    <TouchableOpacity
+                        activeOpacity={0.85}
+                        style={styles.pickerBox}
+                        onPress={() => setLocationModalVisible(true)}
+                    >
+                        <View style={styles.pickerRow}>
+                            <View style={styles.pickerIconBox}>
+                                <Image source={pointer} style={styles.pickerIconImg} />
+                            </View>
+                            <View style={styles.pickerMeta}>
+                                <Text style={styles.pickerLabel}>SERVICE LOCATION</Text>
+                                {selectedLocationText ? (
+                                    <Text style={styles.pickerValue} numberOfLines={1} ellipsizeMode='tail'>
+                                        {selectedLocationText}
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.pickerPlaceholder}>Select service location</Text>
+                                )}
+                            </View>
+                            <Text style={styles.pickerArrow}>▼</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    {/* Select category */}
+                    <View style={styles.pickerBox}>
                         <TouchableOpacity
                             activeOpacity={0.85}
-                            style={styles.pickerBox}
-                            onPress={() => setLocationModalVisible(true)}
+                            style={styles.pickerRow}
+                            onPress={() => setCategoryOpen(!isCategoryOpen)}
                         >
-                            <View style={styles.pickerRow}>
-                                <View style={styles.pickerIconBox}>
-                                    <Image source={pointer} style={styles.pickerIconImg} />
-                                </View>
-                                <View style={styles.pickerMeta}>
-                                    <Text style={styles.pickerLabel}>SERVICE LOCATION</Text>
-                                    {selectedLocationText ? (
-                                        <Text style={styles.pickerValue} numberOfLines={1} ellipsizeMode='tail'>
-                                            {selectedLocationText}
-                                        </Text>
-                                    ) : (
-                                        <Text style={styles.pickerPlaceholder}>Select service location</Text>
-                                    )}
-                                </View>
-                                <Text style={styles.pickerArrow}>▼</Text>
+                            <View style={[styles.pickerIconBox, !activeCategory && { backgroundColor: '#F0F4FA' }]}>
+                                {activeCategory ? (
+                                    <Image source={activeCategory.icon} style={styles.pickerIconImg} />
+                                ) : (
+                                    <Text style={{ fontSize: 16, color: '#A0B0C8' }}>☰</Text>
+                                )}
                             </View>
+                            <View style={styles.pickerMeta}>
+                                <Text style={styles.pickerLabel}>SERVICE CATEGORY</Text>
+                                {activeCategory ? (
+                                    <Text style={styles.pickerValue}>{activeCategory.label}</Text>
+                                ) : (
+                                    <Text style={styles.pickerPlaceholder}>Select a category</Text>
+                                )}
+                            </View>
+                            <Text style={styles.pickerArrow}>{isCategoryOpen ? '▲' : '▼'}</Text>
                         </TouchableOpacity>
 
-                        {/* Select category */}
-                        <View style={styles.pickerBox}>
-                            <TouchableOpacity
-                                activeOpacity={0.85}
-                                style={styles.pickerRow}
-                                onPress={() => setCategoryOpen(!isCategoryOpen)}
-                            >
-                                <View style={[styles.pickerIconBox, !activeCategory && { backgroundColor: '#F0F4FA' }]}>
-                                    {activeCategory ? (
-                                        <Image source={activeCategory.icon} style={styles.pickerIconImg} />
-                                    ) : (
-                                        <Text style={{ fontSize: 16, color: '#A0B0C8' }}>☰</Text>
-                                    )}
-                                </View>
-                                <View style={styles.pickerMeta}>
-                                    <Text style={styles.pickerLabel}>SERVICE CATEGORY</Text>
-                                    {activeCategory ? (
-                                        <Text style={styles.pickerValue}>{activeCategory.label}</Text>
-                                    ) : (
-                                        <Text style={styles.pickerPlaceholder}>Select a category</Text>
-                                    )}
-                                </View>
-                                <Text style={styles.pickerArrow}>{isCategoryOpen ? '▲' : '▼'}</Text>
-                            </TouchableOpacity>
-
-                            {isCategoryOpen && (
-                                <>
-                                    <View style={styles.categoryDivider} />
-                                    {CATEGORY_OPTIONS.map((option) => (
-                                        <TouchableOpacity
-                                            key={option.id}
-                                            activeOpacity={0.85}
-                                            style={styles.categoryOptionRow}
-                                            onPress={() => {
-                                                setSelectedCategory(option.id)
-                                                setCategoryOpen(false)
-                                            }}
-                                        >
-                                            <View style={styles.pickerIconBox}>
-                                                <Image source={option.icon} style={styles.pickerIconImg} />
-                                            </View>
-                                            <Text style={styles.categoryOptionText}>{option.label}</Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </>
-                            )}
-                        </View>
-
-                        {/* Find Service button */}
-                        <TouchableOpacity
-                            activeOpacity={canFindService ? 0.85 : 1}
-                            style={[styles.findBtn, canFindService ? styles.findBtnActive : styles.findBtnDim]}
-                            onPress={handleFindService}
-                            disabled={!canFindService || isFindServiceLoading}
-                        >
-                            {isFindServiceLoading ? (
-                                <ActivityIndicator color='#fff' size='small' />
-                            ) : (
-                                <Text style={styles.findBtnText}>Find Service</Text>
-                            )}
-                        </TouchableOpacity>
+                        {isCategoryOpen && (
+                            <>
+                                <View style={styles.categoryDivider} />
+                                {CATEGORY_OPTIONS.map((option) => (
+                                    <TouchableOpacity
+                                        key={option.id}
+                                        activeOpacity={0.85}
+                                        style={styles.categoryOptionRow}
+                                        onPress={() => {
+                                            setSelectedCategory(option.id)
+                                            setCategoryOpen(false)
+                                        }}
+                                    >
+                                        <View style={styles.pickerIconBox}>
+                                            <Image source={option.icon} style={styles.pickerIconImg} />
+                                        </View>
+                                        <Text style={styles.categoryOptionText}>{option.label}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </>
+                        )}
                     </View>
+
+                    {/* Find Service button */}
+                    <TouchableOpacity
+                        activeOpacity={canFindService ? 0.85 : 1}
+                        style={[styles.findBtn, canFindService ? styles.findBtnActive : styles.findBtnDim]}
+                        onPress={handleFindService}
+                        disabled={!canFindService || isFindServiceLoading}
+                    >
+                        {isFindServiceLoading ? (
+                            <ActivityIndicator color='#fff' size='small' />
+                        ) : (
+                            <Text style={styles.findBtnText}>Find Service</Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <Footer navigation={navigation} route={route} />
