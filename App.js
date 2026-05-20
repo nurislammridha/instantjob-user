@@ -19,6 +19,8 @@ import ForgotOtpPage from './pages/ForgotOtpPage';
 import SetNewPasswordPage from './pages/SetNewPasswordPage';
 import Home from './pages/Home';
 import InstantHirePage from './pages/InstantHirePage.js';
+import AllCategoriesPage from './pages/AllCategoriesPage';
+import ProfilePage from './pages/ProfilePage';
 
 const Stack = createStackNavigator();
 
@@ -43,6 +45,8 @@ const App = () => {
             {/* Main app */}
             <Stack.Screen name="Home" component={Home} />
             <Stack.Screen name="LiveRide" component={InstantHirePage} />
+            <Stack.Screen name="AllCategories" component={AllCategoriesPage} />
+            <Stack.Screen name="Profile" component={ProfilePage} />
           </Stack.Navigator>
         </NavigationContainer>
         <Toast />

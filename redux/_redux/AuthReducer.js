@@ -29,6 +29,10 @@ const initialState = {
     isSetPasswordLoading: false,
     passwordResetSuccess: false,
 
+    // profile
+    isProfileLoading: false,
+    profileUpdateSuccess: false,
+
     // user state
     user: null,
     pendingEmail: null, // email waiting for OTP verification
@@ -70,6 +74,11 @@ const AuthReducer = (state = initialState, action) => {
             return { ...state, isSetPasswordLoading: action.payload };
         case Types.PASSWORD_RESET_SUCCESS:
             return { ...state, passwordResetSuccess: action.payload };
+
+        case Types.IS_PROFILE_LOADING:
+            return { ...state, isProfileLoading: action.payload };
+        case Types.PROFILE_UPDATE_SUCCESS:
+            return { ...state, profileUpdateSuccess: action.payload };
 
         case Types.SET_USER:
             return { ...state, user: action.payload };

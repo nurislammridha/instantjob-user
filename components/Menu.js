@@ -12,6 +12,7 @@ import logout from '../assets/icons/logout.png'
 import cross from '../assets/icons/cross.png'
 import PrimaText from './PrimaText'
 import { storeData } from '../assets/functions/helperFunction'
+
 const styles = StyleSheet.create({
     container: {
         paddingHorizontal: 20,
@@ -45,10 +46,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 15,
         display: 'flex',
-        flexDirection: 'row'
+        flexDirection: 'row',
+        alignItems: 'center'
     },
     itemImg: { width: 24, height: 24, marginRight: 16 }
 })
+
 const Menu = ({ closeSlider, navigation, route, user }) => {
     const handleLogout = () => {
         closeSlider()
@@ -57,15 +60,17 @@ const Menu = ({ closeSlider, navigation, route, user }) => {
         storeData("isLogin", false)
         navigation.navigate("Login")
     }
-    // console.log('user', user)
+
+    const avatarSource = user?.avatar?.url ? { uri: user.avatar.url } : man
+
     return (
         <View style={styles.container}>
             <View style={styles.top}>
                 <View style={styles.left}>
-                    <Image source={user ? { uri: user?.avatar } : man} style={styles.man} />
+                    <Image source={avatarSource} style={styles.man} />
                     <View>
                         <PrimaText
-                            content={user?.name || "Jack Smith"}
+                            content={user?.name || "Guest"}
                             color='#2A2A38'
                             weight='500'
                             size={14}
@@ -74,7 +79,7 @@ const Menu = ({ closeSlider, navigation, route, user }) => {
                         <View style={styles.starCon}>
                             <Image source={star} style={styles.star} />
                             <PrimaText
-                                content={user?.rating ? user.rating.average : "4.8"}
+                                content={user?.rating ? String(user.rating.average) : "4.8"}
                                 weight='600'
                                 size={14}
                                 color='#2A2A38'
@@ -86,24 +91,30 @@ const Menu = ({ closeSlider, navigation, route, user }) => {
                 <TouchableOpacity onPress={closeSlider}>
                     <Image source={cross} style={styles.cross} />
                 </TouchableOpacity>
-
             </View>
+
             <View style={styles.bot}>
                 <TouchableOpacity
                     onPress={() => {
-                        // alert("Under developing")
+                        closeSlider()
+                        navigation.navigate("Profile")
+                    }}
+                >
+                    <View style={styles.item}>
+                        <Image source={preferences} style={styles.itemImg} />
+                        <PrimaText content='Profile' color='#2A2A38' weight='500' size={14} />
+                    </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={() => {
                         navigation.navigate("Activities")
                         closeSlider()
                     }}
                 >
                     <View style={styles.item}>
                         <Image source={watch} style={styles.itemImg} />
-                        <PrimaText
-                            content='Job History'
-                            color='#2A2A38'
-                            weight='500'
-                            size={14}
-                        />
+                        <PrimaText content='Job History' color='#2A2A38' weight='500' size={14} />
                     </View>
                 </TouchableOpacity>
 
@@ -115,14 +126,10 @@ const Menu = ({ closeSlider, navigation, route, user }) => {
                 >
                     <View style={styles.item}>
                         <Image source={love} style={styles.itemImg} />
-                        <PrimaText
-                            content='Favourite Jobs '
-                            color='#2A2A38'
-                            weight='500'
-                            size={14}
-                        />
+                        <PrimaText content='Favourite Jobs' color='#2A2A38' weight='500' size={14} />
                     </View>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                     onPress={() => {
                         navigation.navigate("Payment")
@@ -131,14 +138,10 @@ const Menu = ({ closeSlider, navigation, route, user }) => {
                 >
                     <View style={styles.item}>
                         <Image source={payment} style={styles.itemImg} />
-                        <PrimaText
-                            content='Payment Methods'
-                            color='#2A2A38'
-                            weight='500'
-                            size={14}
-                        />
+                        <PrimaText content='Payment Methods' color='#2A2A38' weight='500' size={14} />
                     </View>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                     onPress={() => {
                         navigation.navigate("Notifications")
@@ -147,50 +150,18 @@ const Menu = ({ closeSlider, navigation, route, user }) => {
                 >
                     <View style={styles.item}>
                         <Image source={notification} style={styles.itemImg} />
-                        <PrimaText
-                            content='Notifications'
-                            color='#2A2A38'
-                            weight='500'
-                            size={14}
-                        />
+                        <PrimaText content='Notifications' color='#2A2A38' weight='500' size={14} />
                     </View>
                 </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={() => {
-                        navigation.navigate("Preferences")
-                        closeSlider()
-                    }}
-                >
-                    <View style={styles.item}>
-                        <Image source={preferences} style={styles.itemImg} />
-                        <PrimaText
-                            content='Preferences'
-                            color='#2A2A38'
-                            weight='500'
-                            size={14}
-                        />
-                    </View>
-                </TouchableOpacity>
+
                 <View style={styles.item}>
                     <Image source={faq} style={styles.itemImg} />
-                    <PrimaText
-                        content='FAQ'
-                        color='#2A2A38'
-                        weight='500'
-                        size={14}
-                    />
+                    <PrimaText content='FAQ' color='#2A2A38' weight='500' size={14} />
                 </View>
-                <TouchableOpacity
-                    style={styles.item}
-                    onPress={() => handleLogout()}
-                >
+
+                <TouchableOpacity style={styles.item} onPress={handleLogout}>
                     <Image source={logout} style={styles.itemImg} />
-                    <PrimaText
-                        content='Logout'
-                        color='#2A2A38'
-                        weight='500'
-                        size={14}
-                    />
+                    <PrimaText content='Logout' color='#2A2A38' weight='500' size={14} />
                 </TouchableOpacity>
             </View>
         </View>

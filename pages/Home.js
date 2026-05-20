@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState } from 'react'
-import { Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { ActivityIndicator, Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { useDispatch, useSelector } from 'react-redux'
 import PrimaHeader from '../components/PrimaHeader'
 import Footer from '../components/Footer'
 import GoingInput from '../components/GoingInput'
@@ -10,9 +11,14 @@ import car from '../assets/icons/car.png'
 import preferences from '../assets/icons/preferences.png'
 import star from '../assets/icons/star.png'
 import pointer from '../assets/icons/pointer.png'
-
 import { useFocusEffect } from '@react-navigation/native'
+import { getData } from '../assets/functions/helperFunction'
+import { FetchCategories } from '../redux/_redux/CategoryAction'
+import { SET_USER } from '../redux/_redux/Types'
+
 const windowWidth = Dimensions.get('window').width
+
+const FALLBACK_ICONS = [car, watch, preferences, pointer, payment, star]
 
 const SERVICE_OPTIONS = [
     {
@@ -33,15 +39,6 @@ const SERVICE_OPTIONS = [
         title: 'Post once, receive multiple offers',
         description: 'Describe your task and compare offers from qualified workers before hiring.'
     }
-]
-
-const JOB_CATEGORIES = [
-    { id: 'driver', name: 'Driver', icon: car },
-    { id: 'cooker', name: 'Cooker', icon: watch },
-    { id: 'maintenance', name: 'Maintenance', icon: preferences },
-    { id: 'helper', name: 'Helper', icon: pointer },
-    { id: 'mechanic', name: 'Mechanic', icon: payment },
-    { id: 'cleaner', name: 'Cleaner', icon: star }
 ]
 
 const HOW_IT_WORKS = [
@@ -136,6 +133,18 @@ const styles = StyleSheet.create({
         marginTop: 18,
         marginHorizontal: 20
     },
+    categoriesHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 2
+    },
+    allButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 6,
+        backgroundColor: '#EAF2FF',
+        borderRadius: 8
+    },
     categoryGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -168,6 +177,13 @@ const styles = StyleSheet.create({
         resizeMode: 'contain',
         tintColor: '#0A5CC1'
     },
+    categoryApiIcon: {
+        width: 42,
+        height: 42,
+        borderRadius: 10,
+        marginBottom: 8,
+        resizeMode: 'cover'
+    },
     flowSection: {
         marginTop: 8,
         marginHorizontal: 20
@@ -184,6 +200,9 @@ const styles = StyleSheet.create({
 })
 
 const Home = ({ navigation, route }) => {
+    const dispatch = useDispatch()
+    const { categories, isCategoriesLoading } = useSelector((state) => state.category)
+    const reduxUser = useSelector((state) => state.auth.user)
     const [user, setUser] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
     const [activeService, setActiveService] = useState('instant')
@@ -195,11 +214,26 @@ const Home = ({ navigation, route }) => {
 
     useFocusEffect(
         useCallback(() => {
-            // getData("user").then((res) => {
-            //     res && setUser(res);
-            // });
+            dispatch(FetchCategories({ limit: 9 }))
+            // Load user from AsyncStorage if not in Redux
+            if (!reduxUser) {
+                getData('user').then((stored) => {
+                    if (stored) {
+                        dispatch({ type: SET_USER, payload: stored })
+                        setUser(stored)
+                    }
+                })
+            } else {
+                setUser(reduxUser)
+            }
         }, [])
     )
+
+    useEffect(() => {
+        if (reduxUser) setUser(reduxUser)
+    }, [reduxUser])
+
+    const displayCategories = categories.slice(0, 9)
 
     return (
         <View style={styles.container}>
@@ -259,7 +293,6 @@ const Home = ({ navigation, route }) => {
                         <View style={styles.serviceButtonsRow}>
                             {SERVICE_OPTIONS.map((service) => {
                                 const isActive = service.key === activeService
-
                                 return (
                                     <TouchableOpacity
                                         key={service.key}
@@ -296,28 +329,50 @@ const Home = ({ navigation, route }) => {
                     </View>
 
                     <View style={styles.categoriesSection}>
-                        <PrimaText
-                            content='Job Categories'
-                            weight='600'
-                            size={16}
-                            color='#1E2E45'
-                        />
-                        <View style={styles.categoryGrid}>
-                            {JOB_CATEGORIES.map((category) => (
-                                <TouchableOpacity key={category.id} activeOpacity={0.9} style={styles.categoryCard}>
-                                    <View style={styles.categoryIconWrap}>
-                                        <Image source={category.icon} style={styles.categoryIcon} />
-                                    </View>
-                                    <PrimaText
-                                        content={category.name}
-                                        size={13}
-                                        weight='600'
-                                        align='center'
-                                        color='#223B5D'
-                                    />
-                                </TouchableOpacity>
-                            ))}
+                        <View style={styles.categoriesHeader}>
+                            <PrimaText
+                                content='Job Categories'
+                                weight='600'
+                                size={16}
+                                color='#1E2E45'
+                            />
+                            <TouchableOpacity
+                                style={styles.allButton}
+                                activeOpacity={0.8}
+                                onPress={() => navigation.navigate('AllCategories')}
+                            >
+                                <PrimaText content='All' size={13} weight='600' color='#0A5CC1' />
+                            </TouchableOpacity>
                         </View>
+
+                        {isCategoriesLoading ? (
+                            <ActivityIndicator color='#0A5CC1' style={{ marginTop: 20 }} />
+                        ) : (
+                            <View style={styles.categoryGrid}>
+                                {displayCategories.map((cat, idx) => {
+                                    const hasImage = cat.img && cat.img.url
+                                    const fallbackIcon = FALLBACK_ICONS[idx % FALLBACK_ICONS.length]
+                                    return (
+                                        <TouchableOpacity key={cat._id} activeOpacity={0.9} style={styles.categoryCard}>
+                                            {hasImage ? (
+                                                <Image source={{ uri: cat.img.url }} style={styles.categoryApiIcon} />
+                                            ) : (
+                                                <View style={styles.categoryIconWrap}>
+                                                    <Image source={fallbackIcon} style={styles.categoryIcon} />
+                                                </View>
+                                            )}
+                                            <PrimaText
+                                                content={cat.categoryName}
+                                                size={13}
+                                                weight='600'
+                                                align='center'
+                                                color='#223B5D'
+                                            />
+                                        </TouchableOpacity>
+                                    )
+                                })}
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.flowSection}>
