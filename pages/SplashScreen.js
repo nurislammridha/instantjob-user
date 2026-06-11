@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { getData } from '../assets/functions/helperFunction';
 
-const splash = require('../assets/images/pro3.jpg');
+const splash = require('../assets/images/splash.png');
 
 const SplashScreen = ({ navigation }) => {
     useEffect(() => {
