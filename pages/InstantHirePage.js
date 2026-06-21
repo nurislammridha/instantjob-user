@@ -4,6 +4,7 @@ import {
     Alert,
     Animated,
     Dimensions,
+    FlatList,
     Image,
     Modal,
     PermissionsAndroid,
@@ -25,12 +26,8 @@ import PrimaHeader from '../components/PrimaHeader'
 import Footer from '../components/Footer'
 import { socketUrl } from '../assets/functions/env'
 import { SET_USER } from '../redux/_redux/Types'
+import { FetchAllCategories } from '../redux/_redux/CategoryAction'
 import pointer from '../assets/icons/pointer.png'
-import car from '../assets/icons/car.png'
-import watch from '../assets/icons/watch.png'
-import preferences from '../assets/icons/preferences.png'
-import payment from '../assets/icons/payment.png'
-import star from '../assets/icons/star.png'
 
 const GOOGLE_API_KEY = 'YOUR_GOOGLE_PLACES_API_KEY'
 const { height: screenHeight } = Dimensions.get('window')
@@ -42,14 +39,6 @@ const DEFAULT_REGION = {
     longitudeDelta: 3.5
 }
 
-const CATEGORY_OPTIONS = [
-    { id: 'driver',      label: 'Driver',      icon: car },
-    { id: 'cooker',      label: 'Cooker',      icon: watch },
-    { id: 'maintenance', label: 'Maintenance', icon: preferences },
-    { id: 'helper',      label: 'Helper',      icon: pointer },
-    { id: 'mechanic',    label: 'Mechanic',    icon: payment },
-    { id: 'cleaner',     label: 'Cleaner',     icon: star }
-]
 
 const FALLBACK_SUGGESTIONS = [
     { place_id: 'f1',  description: 'Gulshan, Dhaka',            lat: 23.7925, lng: 90.4078 },
@@ -88,6 +77,7 @@ const JOB_STATUS = {
 const InstantHirePage = ({ navigation, route }) => {
     const dispatch = useDispatch()
     const reduxUser = useSelector((state) => state.auth.user)
+    const { categories, isCategoriesLoading } = useSelector((state) => state.category)
 
     const mapRef = useRef(null)
     const mapReadyRef = useRef(false)
@@ -118,6 +108,7 @@ const InstantHirePage = ({ navigation, route }) => {
 
     const [selectedCategory, setSelectedCategory] = useState(null)
     const [isCategoryOpen, setCategoryOpen]       = useState(false)
+    const [categorySearch, setCategorySearch]     = useState('')
 
     const [dotPhase, setDotPhase] = useState(0)
     const [jobStatus, setJobStatus] = useState(JOB_STATUS.IDLE)
@@ -138,9 +129,15 @@ const InstantHirePage = ({ navigation, route }) => {
     const [priceInfo, setPriceInfo] = useState(null)
 
     const activeCategory = useMemo(
-        () => CATEGORY_OPTIONS.find((item) => item.id === selectedCategory),
-        [selectedCategory]
+        () => categories.find((item) => item._id === selectedCategory),
+        [selectedCategory, categories]
     )
+
+    const filteredCategories = useMemo(() => {
+        if (!categorySearch.trim()) return categories
+        const q = categorySearch.trim().toLowerCase()
+        return categories.filter((c) => c.categoryName.toLowerCase().includes(q))
+    }, [categories, categorySearch])
 
     const canFindService = selectedLocationText !== null && selectedCategory !== null && jobStatus === JOB_STATUS.IDLE
 
@@ -148,6 +145,7 @@ const InstantHirePage = ({ navigation, route }) => {
 
     useFocusEffect(
         useCallback(() => {
+            dispatch(FetchAllCategories())
             if (reduxUser) {
                 setUser(reduxUser)
             }
@@ -229,7 +227,13 @@ const InstantHirePage = ({ navigation, route }) => {
     // ── Socket setup ──────────────────────────────────────────────────────
 
     useEffect(() => {
-        const socket = io(socketUrl, { transports: ['websocket'], reconnection: true })
+        const socket = io(socketUrl, {
+            transports: ['polling', 'websocket'],
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1500,
+            timeout: 10000,
+        })
         socketRef.current = socket
 
         socket.on('connect', () => {
@@ -317,8 +321,12 @@ const InstantHirePage = ({ navigation, route }) => {
             resetJob()
         })
 
-        socket.on('disconnect', () => {
-            console.log('User socket disconnected')
+        socket.on('connect_error', (err) => {
+            console.log('Socket connect_error:', err?.message)
+        })
+
+        socket.on('disconnect', (reason) => {
+            console.log('User socket disconnected:', reason)
         })
 
         return () => {
@@ -533,30 +541,57 @@ const InstantHirePage = ({ navigation, route }) => {
 
     // ── Find service (real socket request) ───────────────────────────────
 
-    const handleFindService = () => {
-        if (!canFindService) return
-        if (!socketRef.current?.connected) {
-            Alert.alert('Connection Error', 'Not connected to server. Please check your internet.')
-            return
-        }
+    const emitJobRequest = () => {
         const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         setCurrentRequestId(requestId)
         activeRequestIdRef.current = requestId
         setJobStatus(JOB_STATUS.SEARCHING)
-
         socketRef.current.emit('job-request', {
             requestId,
             userId: user?._id || 'anonymous',
             lat: serviceLocation.latitude,
             lng: serviceLocation.longitude,
-            categoryName: activeCategory?.label || '',
+            categoryName: activeCategory?.categoryName || '',
             userName: user?.name || 'User',
             userAvatar: user?.avatar?.url || null,
             address: selectedLocationText || '',
         })
-
-        // Start sending user location updates
         startLocationInterval(requestId)
+    }
+
+    const handleFindService = () => {
+        if (!canFindService) return
+        const socket = socketRef.current
+        if (!socket) return
+
+        if (socket.connected) {
+            emitJobRequest()
+            return
+        }
+
+        // Not yet connected — attempt reconnect then emit
+        socket.connect()
+        const onConnect = () => {
+            cleanup()
+            if (user?._id) {
+                socket.emit('joinRoom', user._id)
+                socket.emit('user-online', { userId: user._id })
+            }
+            emitJobRequest()
+        }
+        const onError = () => {
+            cleanup()
+            Alert.alert(
+                'Connection Error',
+                `Cannot reach the server at:\n${socketUrl}\n\nMake sure your phone and the server are on the same Wi-Fi network.`
+            )
+        }
+        const cleanup = () => {
+            socket.off('connect', onConnect)
+            socket.off('connect_error', onError)
+        }
+        socket.once('connect', onConnect)
+        socket.once('connect_error', onError)
     }
 
     const handleCancelSearch = () => {
@@ -693,18 +728,18 @@ const InstantHirePage = ({ navigation, route }) => {
                             <TouchableOpacity
                                 activeOpacity={0.85}
                                 style={styles.pickerRow}
-                                onPress={() => setCategoryOpen(!isCategoryOpen)}
+                                onPress={() => { setCategoryOpen(!isCategoryOpen); setCategorySearch('') }}
                             >
                                 <View style={[styles.pickerIconBox, !activeCategory && { backgroundColor: '#F0F4FA' }]}>
-                                    {activeCategory
-                                        ? <Image source={activeCategory.icon} style={styles.pickerIconImg} />
-                                        : <Text style={{ fontSize: 16, color: '#A0B0C8' }}>☰</Text>
+                                    {activeCategory?.img?.url
+                                        ? <Image source={{ uri: activeCategory.img.url }} style={styles.pickerIconImg} />
+                                        : <Image source={pointer} style={styles.pickerIconImg} />
                                     }
                                 </View>
                                 <View style={styles.pickerMeta}>
                                     <Text style={styles.pickerLabel}>SERVICE CATEGORY</Text>
                                     {activeCategory
-                                        ? <Text style={styles.pickerValue}>{activeCategory.label}</Text>
+                                        ? <Text style={styles.pickerValue}>{activeCategory.categoryName}</Text>
                                         : <Text style={styles.pickerPlaceholder}>Select a category</Text>
                                     }
                                 </View>
@@ -714,19 +749,47 @@ const InstantHirePage = ({ navigation, route }) => {
                             {isCategoryOpen && (
                                 <>
                                     <View style={styles.categoryDivider} />
-                                    {CATEGORY_OPTIONS.map((option) => (
-                                        <TouchableOpacity
-                                            key={option.id}
-                                            activeOpacity={0.85}
-                                            style={styles.categoryOptionRow}
-                                            onPress={() => { setSelectedCategory(option.id); setCategoryOpen(false) }}
-                                        >
-                                            <View style={styles.pickerIconBox}>
-                                                <Image source={option.icon} style={styles.pickerIconImg} />
-                                            </View>
-                                            <Text style={styles.categoryOptionText}>{option.label}</Text>
-                                        </TouchableOpacity>
-                                    ))}
+                                    <View style={styles.categorySearchRow}>
+                                        <TextInput
+                                            style={styles.categorySearchInput}
+                                            placeholder="Search category..."
+                                            placeholderTextColor="#A0B0C8"
+                                            value={categorySearch}
+                                            onChangeText={setCategorySearch}
+                                            autoFocus
+                                        />
+                                    </View>
+                                    <View style={styles.categoryDivider} />
+                                    {isCategoriesLoading ? (
+                                        <ActivityIndicator size="small" color="#2563EB" style={{ paddingVertical: 14 }} />
+                                    ) : filteredCategories.length === 0 ? (
+                                        <Text style={styles.categoryEmptyText}>No categories found</Text>
+                                    ) : (
+                                        <FlatList
+                                            data={filteredCategories}
+                                            keyExtractor={(item) => item._id}
+                                            style={styles.categoryList}
+                                            keyboardShouldPersistTaps="handled"
+                                            showsVerticalScrollIndicator={true}
+                                            initialNumToRender={15}
+                                            maxToRenderPerBatch={20}
+                                            renderItem={({ item: option }) => (
+                                                <TouchableOpacity
+                                                    activeOpacity={0.85}
+                                                    style={styles.categoryOptionRow}
+                                                    onPress={() => { setSelectedCategory(option._id); setCategoryOpen(false); setCategorySearch('') }}
+                                                >
+                                                    <View style={styles.pickerIconBox}>
+                                                        {option.img?.url
+                                                            ? <Image source={{ uri: option.img.url }} style={styles.pickerIconImg} />
+                                                            : <Image source={pointer} style={styles.pickerIconImg} />
+                                                        }
+                                                    </View>
+                                                    <Text style={styles.categoryOptionText}>{option.categoryName}</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        />
+                                    )}
                                 </>
                             )}
                         </View>
@@ -949,12 +1012,16 @@ const InstantHirePage = ({ navigation, route }) => {
                             <Animated.View style={[styles.radarRing, { opacity: ring2Opacity, transform: [{ scale: ring2Scale }] }]} />
                             <Animated.View style={[styles.radarRing, { opacity: ring3Opacity, transform: [{ scale: ring3Scale }] }]} />
                             <View style={styles.radarCenter}>
-                                {activeCategory && <Image source={activeCategory.icon} style={styles.radarCenterIcon} />}
+                                {activeCategory && (
+                                    activeCategory.img?.url
+                                        ? <Image source={{ uri: activeCategory.img.url }} style={styles.radarCenterIcon} />
+                                        : <Image source={pointer} style={styles.radarCenterIcon} />
+                                )}
                             </View>
                         </View>
                         <Text style={styles.searchingTitle}>Searching Nearby Workers</Text>
                         <Text style={styles.searchingSubtitle}>
-                            {'Finding ' + (activeCategory?.label ?? '') + ' experts\nnear your selected location...'}
+                            {'Finding ' + (activeCategory?.categoryName ?? '') + ' experts\nnear your selected location...'}
                         </Text>
                         <View style={styles.dotsRow}>
                             {[0, 1, 2].map((i) => (
@@ -994,7 +1061,7 @@ const styles = StyleSheet.create({
 
     pickerBox: {
         borderWidth: 1, borderColor: '#D7E3F3', borderRadius: 12,
-        backgroundColor: '#FAFCFF', marginBottom: 10, overflow: 'hidden'
+        backgroundColor: '#FAFCFF', marginBottom: 10
     },
     pickerRow: {
         flexDirection: 'row', alignItems: 'center',
@@ -1011,6 +1078,10 @@ const styles = StyleSheet.create({
     pickerPlaceholder: { fontSize: 13, fontWeight: '400', color: '#B0C2D8' },
     pickerArrow: { fontSize: 10, color: '#6B87A8' },
     categoryDivider: { height: 1, backgroundColor: '#EEF3FA' },
+    categorySearchRow: { paddingHorizontal: 12, paddingVertical: 8 },
+    categorySearchInput: { height: 36, borderRadius: 8, backgroundColor: '#F0F4FA', paddingHorizontal: 12, fontSize: 13, color: '#233A5B' },
+    categoryEmptyText: { fontSize: 13, color: '#A0B0C8', textAlign: 'center', paddingVertical: 14 },
+    categoryList: { maxHeight: 220 },
     categoryOptionRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 11 },
     categoryOptionText: { fontSize: 14, fontWeight: '500', color: '#233A5B', marginLeft: 10 },
 
