@@ -8,7 +8,7 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 
 class MainActivity : ReactActivity() {
 
-  override fun getMainComponentName(): String = "InstantJobVendor"
+  override fun getMainComponentName(): String = "InstantJobUser"
 
   override fun onCreate(savedInstanceState: Bundle?) {
     setTheme(R.style.AppTheme)
