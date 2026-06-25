@@ -16,7 +16,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native'
-import MapView, { Marker } from 'react-native-maps'
+import MapView, { Marker, Polyline } from 'react-native-maps'
 import Geolocation from '@react-native-community/geolocation'
 import { io } from 'socket.io-client'
 import { useFocusEffect } from '@react-navigation/native'
@@ -25,6 +25,8 @@ import { useSelector, useDispatch } from 'react-redux'
 import PrimaHeader from '../components/PrimaHeader'
 import Footer from '../components/Footer'
 import { socketUrl } from '../assets/functions/env'
+import { fetchRoute, formatEta } from '../assets/functions/routing'
+import { getData } from '../assets/functions/helperFunction'
 import { SET_USER } from '../redux/_redux/Types'
 import { FetchAllCategories } from '../redux/_redux/CategoryAction'
 import pointer from '../assets/icons/pointer.png'
@@ -86,6 +88,10 @@ const InstantHirePage = ({ navigation, route }) => {
     const socketRef = useRef(null)
     const locationIntervalRef = useRef(null)
     const activeRequestIdRef = useRef(null)
+    const userIdRef = useRef(null)        // latest user id, for reliable room join
+    const jobDestRef = useRef(null)       // user's service location (route destination)
+    const lastRouteAtRef = useRef(0)      // throttle for route re-fetching
+    const routeActiveRef = useRef(false)  // only track the road while vendor is en route
 
     // Radar animation
     const ring1Scale   = useRef(new Animated.Value(0.2)).current
@@ -99,6 +105,12 @@ const InstantHirePage = ({ navigation, route }) => {
     const [user, setUser] = useState(null)
     const [serviceLocation, setServiceLocation] = useState(DEFAULT_REGION)
     const [isLocationLoading, setLocationLoading] = useState(true)
+
+    // The API returns the account id as `id` (not `_id`). Resolve both so the
+    // socket room / job ownership is never empty (which left the user stuck
+    // on "Searching" because the server delivered to a room nobody was in).
+    const resolveId = (u) => u?._id || u?.id || null
+    const myId = resolveId(user) || resolveId(reduxUser)
 
     const [selectedLocationText, setSelectedLocationText] = useState(null)
     const [isLocationModalVisible, setLocationModalVisible] = useState(false)
@@ -117,6 +129,10 @@ const InstantHirePage = ({ navigation, route }) => {
     const [acceptedVendor, setAcceptedVendor] = useState(null)
     const [vendorLocation, setVendorLocation] = useState(null)
     const [currentRequestId, setCurrentRequestId] = useState(null)
+
+    // Route (vendor → user) for ride-sharing style tracking
+    const [routeCoords, setRouteCoords] = useState([])
+    const [etaText, setEtaText] = useState('')
 
     // Timer (synced from vendor events)
     const [workStartTime, setWorkStartTime] = useState(null)
@@ -146,8 +162,20 @@ const InstantHirePage = ({ navigation, route }) => {
     useFocusEffect(
         useCallback(() => {
             dispatch(FetchAllCategories())
+            // Identity is required for the socket room: the server delivers
+            // vendor-found / live-location to a room named by the user id.
+            // Redux is not persisted across reloads, so restore from storage
+            // when it's empty — otherwise the user id is missing and the user
+            // is stuck on "Searching" after a vendor accepts.
             if (reduxUser) {
                 setUser(reduxUser)
+            } else {
+                getData('user').then((stored) => {
+                    if (stored) {
+                        dispatch({ type: SET_USER, payload: stored })
+                        setUser(stored)
+                    }
+                })
             }
         }, [reduxUser])
     )
@@ -224,6 +252,47 @@ const InstantHirePage = ({ navigation, route }) => {
             : `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
     }
 
+    // ── Room join (reliable, ref-based) ─────────────────────────────────
+    // The server delivers vendor-found / arrived / location events via a room
+    // named by the user id. If the room isn't joined (e.g. auth loaded after
+    // the socket connected) the user stays stuck on "Searching". Joining from a
+    // ref on both connect AND id-availability makes this race-proof.
+
+    const joinUserRoom = () => {
+        const id = userIdRef.current
+        const socket = socketRef.current
+        if (id && socket?.connected) {
+            socket.emit('joinRoom', id)
+            socket.emit('user-online', { userId: id })
+            console.log('[USER] joined room + user-online as:', id)
+        } else {
+            console.log('[USER] joinUserRoom skipped — id:', id, 'connected:', socket?.connected)
+        }
+    }
+
+    useEffect(() => {
+        userIdRef.current = resolveId(reduxUser) || resolveId(user)
+        joinUserRoom()
+    }, [reduxUser, user])
+
+    // ── Route helper (vendor → user) ─────────────────────────────────────
+
+    const updateRoute = async (origin, dest, { force = false } = {}) => {
+        if (!origin || !dest || origin.latitude == null || dest.latitude == null) return
+        const now = Date.now()
+        if (!force && now - lastRouteAtRef.current < 6000) return
+        lastRouteAtRef.current = now
+        const result = await fetchRoute(origin, dest)
+        setRouteCoords(result.coordinates)
+        setEtaText(formatEta(result.distance, result.duration))
+        if (result.coordinates?.length >= 2) {
+            mapRef.current?.fitToCoordinates(result.coordinates, {
+                edgePadding: { top: 110, right: 70, bottom: 340, left: 70 },
+                animated: true,
+            })
+        }
+    }
+
     // ── Socket setup ──────────────────────────────────────────────────────
 
     useEffect(() => {
@@ -238,24 +307,20 @@ const InstantHirePage = ({ navigation, route }) => {
 
         socket.on('connect', () => {
             console.log('User socket connected:', socket.id)
-            if (reduxUser?._id) {
-                socket.emit('joinRoom', reduxUser._id)
-                socket.emit('user-online', { userId: reduxUser._id })
-            }
+            joinUserRoom()
         })
 
         // Vendor accepted our request
         socket.on('vendor-found', (data) => {
+            console.log('[USER] vendor-found received:', data?.name, data?.vendorId)
             setJobStatus(JOB_STATUS.ACCEPTED)
             setAcceptedVendor(data)
-            setVendorLocation({ latitude: data.lat, longitude: data.lng })
+            routeActiveRef.current = true
             if (data.lat && data.lng) {
-                mapRef.current?.animateToRegion({
-                    latitude: data.lat,
-                    longitude: data.lng,
-                    latitudeDelta: 0.03,
-                    longitudeDelta: 0.03,
-                }, 800)
+                const vendorPos = { latitude: data.lat, longitude: data.lng }
+                setVendorLocation(vendorPos)
+                // Draw the road the vendor will travel to reach the user.
+                updateRoute(vendorPos, jobDestRef.current, { force: true })
             }
         })
 
@@ -264,17 +329,22 @@ const InstantHirePage = ({ navigation, route }) => {
             setJobStatus(JOB_STATUS.IDLE)
             Alert.alert(
                 'No Vendors Found',
-                'No available vendors in your area for this category within 5 km. Please try again later.'
+                'No vendors are currently online for this category. Please try again later.'
             )
         })
 
-        // Vendor live location update
+        // Vendor live location update — move the marker and redraw the road
         socket.on('vendor-location-update', (data) => {
-            setVendorLocation({ latitude: data.lat, longitude: data.lng })
+            const vendorPos = { latitude: data.lat, longitude: data.lng }
+            setVendorLocation(vendorPos)
+            if (routeActiveRef.current) updateRoute(vendorPos, jobDestRef.current)
         })
 
-        // Vendor arrived
+        // Vendor arrived — stop tracking the road, clear it
         socket.on('vendor-arrived', () => {
+            routeActiveRef.current = false
+            setRouteCoords([])
+            setEtaText('')
             setJobStatus(JOB_STATUS.ARRIVED)
         })
 
@@ -330,20 +400,12 @@ const InstantHirePage = ({ navigation, route }) => {
         })
 
         return () => {
-            socket.emit('user-offline', { userId: reduxUser?._id })
+            socket.emit('user-offline', { userId: userIdRef.current })
             socket.disconnect()
             stopLocationInterval()
             if (timerRef.current) clearInterval(timerRef.current)
         }
     }, [])
-
-    // Re-join room when user is available
-    useEffect(() => {
-        if (user?._id && socketRef.current?.connected) {
-            socketRef.current.emit('joinRoom', user._id)
-            socketRef.current.emit('user-online', { userId: user._id })
-        }
-    }, [user])
 
     // Keep workStartTime ref accessible in socket handlers
     useEffect(() => {
@@ -367,10 +429,11 @@ const InstantHirePage = ({ navigation, route }) => {
             Geolocation.getCurrentPosition(
                 (pos) => {
                     const { latitude, longitude } = pos.coords
-                    if (socketRef.current && user?._id) {
+                    const id = userIdRef.current
+                    if (socketRef.current && id) {
                         socketRef.current.emit('user-location-update', {
                             requestId,
-                            userId: user._id,
+                            userId: id,
                             lat: latitude,
                             lng: longitude,
                         })
@@ -545,10 +608,19 @@ const InstantHirePage = ({ navigation, route }) => {
         const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
         setCurrentRequestId(requestId)
         activeRequestIdRef.current = requestId
+        // Lock in the service location as the route destination for this job.
+        jobDestRef.current = {
+            latitude: serviceLocation.latitude,
+            longitude: serviceLocation.longitude,
+        }
+        routeActiveRef.current = false
+        setRouteCoords([])
+        setEtaText('')
         setJobStatus(JOB_STATUS.SEARCHING)
+        console.log('[USER] job-request as userId:', userIdRef.current || myId || 'anonymous', 'requestId:', requestId)
         socketRef.current.emit('job-request', {
             requestId,
-            userId: user?._id || 'anonymous',
+            userId: userIdRef.current || myId || 'anonymous',
             lat: serviceLocation.latitude,
             lng: serviceLocation.longitude,
             categoryName: activeCategory?.categoryName || '',
@@ -573,10 +645,7 @@ const InstantHirePage = ({ navigation, route }) => {
         socket.connect()
         const onConnect = () => {
             cleanup()
-            if (user?._id) {
-                socket.emit('joinRoom', user._id)
-                socket.emit('user-online', { userId: user._id })
-            }
+            joinUserRoom()
             emitJobRequest()
         }
         const onError = () => {
@@ -598,7 +667,7 @@ const InstantHirePage = ({ navigation, route }) => {
         if (activeRequestIdRef.current && socketRef.current) {
             socketRef.current.emit('cancel-job-request', {
                 requestId: activeRequestIdRef.current,
-                userId: user?._id,
+                userId: userIdRef.current,
             })
         }
         stopLocationInterval()
@@ -620,7 +689,7 @@ const InstantHirePage = ({ navigation, route }) => {
                         if (activeRequestIdRef.current && socketRef.current) {
                             socketRef.current.emit('cancel-job-request', {
                                 requestId: activeRequestIdRef.current,
-                                userId: user?._id,
+                                userId: userIdRef.current,
                             })
                         }
                         resetJob()
@@ -638,6 +707,10 @@ const InstantHirePage = ({ navigation, route }) => {
         setVendorLocation(null)
         setCurrentRequestId(null)
         activeRequestIdRef.current = null
+        jobDestRef.current = null
+        routeActiveRef.current = false
+        setRouteCoords([])
+        setEtaText('')
         setWorkStartTime(null)
         setTotalPausedSeconds(0)
         setPausedAt(null)
@@ -683,11 +756,34 @@ const InstantHirePage = ({ navigation, route }) => {
                             title='Service location'
                         />
                     )}
+
+                    {/* Road the vendor is travelling to reach you */}
+                    {routeCoords.length >= 2 && (
+                        <Polyline
+                            coordinates={routeCoords}
+                            strokeWidth={5}
+                            strokeColor='#0C5BC2'
+                            lineCap='round'
+                            lineJoin='round'
+                        />
+                    )}
+
+                    {/* Your location (route destination) during an active job */}
+                    {jobStatus !== JOB_STATUS.IDLE && (
+                        <Marker
+                            coordinate={serviceLocation}
+                            title='Your location'
+                            description={selectedLocationText || 'Service location'}
+                            pinColor='#2563EB'
+                        />
+                    )}
+
+                    {/* Vendor's live position */}
                     {vendorLocation && (
                         <Marker
                             coordinate={vendorLocation}
                             title={acceptedVendor?.name || 'Vendor'}
-                            description={acceptedVendor?.categoryName}
+                            description={`${acceptedVendor?.categoryName || ''}${etaText ? ' · ' + etaText : ''}`}
                             pinColor='#16A34A'
                         />
                     )}
@@ -839,7 +935,11 @@ const InstantHirePage = ({ navigation, route }) => {
                         {isAccepted && (
                             <View style={styles.onWayBanner}>
                                 <Animated.View style={[styles.onWayDot, { opacity: breatheAnim }]} />
-                                <Text style={styles.onWayText}>On the way to your location</Text>
+                                <Text style={styles.onWayText}>
+                                    {etaText
+                                        ? `On the way · ${etaText}`
+                                        : 'On the way to your location'}
+                                </Text>
                             </View>
                         )}
 
