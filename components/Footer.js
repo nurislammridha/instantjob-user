@@ -1,5 +1,6 @@
 import React from 'react'
-import { Image, Platform, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import home from '../assets/icons/home.png'
 import homeActive from '../assets/icons/homeSelected.png'
 import instant from '../assets/icons/watch.png'
@@ -22,7 +23,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 8,
         paddingTop: 10,
-        paddingBottom: Platform.OS === 'ios' ? 22 : 10,
         borderTopWidth: 1,
         borderTopColor: '#3A3A4D',
         shadowColor: '#000',
@@ -62,9 +62,10 @@ const Footer = ({ navigation, route }) => {
     const isLiveRideRoute = routeName === 'LiveRide'
     const isActivitiesRoute = routeName === 'Activities'
     const isProfileRoute = routeName === 'Profile'
+    const insets = useSafeAreaInsets()
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { paddingBottom: 10 + insets.bottom }]}>
             <TouchableOpacity activeOpacity={0.85} style={styles.tabButton} onPress={() => navigation.navigate('Home')}>
                 <View style={[styles.item, isHomeRoute && styles.itemActive]}>
                     <Image source={isHomeRoute ? homeActive : home} style={styles.img} />

@@ -15,6 +15,7 @@ const initialState = {
     // login
     isLoginLoading: false,
     loginSubmitted: false,
+    requiresEmailVerification: false,
 
     // forgot password
     isForgotPasswordLoading: false,
@@ -57,6 +58,8 @@ const AuthReducer = (state = initialState, action) => {
             return { ...state, isLoginLoading: action.payload };
         case Types.LOGIN_SUBMITTED:
             return { ...state, loginSubmitted: action.payload };
+        case Types.REQUIRES_EMAIL_VERIFICATION:
+            return { ...state, requiresEmailVerification: action.payload };
 
         case Types.IS_FORGOT_PASSWORD_LOADING:
             return { ...state, isForgotPasswordLoading: action.payload };

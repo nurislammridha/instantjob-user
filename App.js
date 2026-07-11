@@ -2,6 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Provider } from 'react-redux';
 import Toast from 'react-native-toast-message';
 import store from './redux/store';
@@ -27,6 +28,7 @@ const Stack = createStackNavigator();
 const App = () => {
   return (
     <Provider store={store}>
+      <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NavigationContainer>
           <Stack.Navigator
@@ -51,6 +53,7 @@ const App = () => {
         </NavigationContainer>
         <Toast />
       </GestureHandlerRootView>
+      </SafeAreaProvider>
     </Provider>
   );
 };

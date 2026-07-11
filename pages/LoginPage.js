@@ -11,12 +11,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import PrimaButton from '../components/PrimaButton';
 import PrimaInput from '../components/PrimaInput';
 import PrimaText from '../components/PrimaText';
-import { FalseLoginSubmitted, SubmitLogin } from '../redux/_redux/AuthAction';
+import { FalseLoginSubmitted, FalseRequiresEmailVerification, SubmitLogin } from '../redux/_redux/AuthAction';
 import { validateEmail } from '../assets/functions/helperFunction';
 
 const LoginPage = ({ navigation }) => {
     const dispatch = useDispatch();
-    const { isLoginLoading, loginSubmitted } = useSelector((state) => state.auth);
+    const { isLoginLoading, loginSubmitted, requiresEmailVerification } = useSelector((state) => state.auth);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -40,6 +40,13 @@ const LoginPage = ({ navigation }) => {
             navigation.replace('Home');
         }
     }, [loginSubmitted]);
+
+    useEffect(() => {
+        if (requiresEmailVerification) {
+            dispatch(FalseRequiresEmailVerification());
+            navigation.navigate('Otp', { purpose: 'signup' });
+        }
+    }, [requiresEmailVerification]);
 
     const handleLogin = () => {
         if (!emailValid || !passwordValid || isLoginLoading) return;

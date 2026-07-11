@@ -97,10 +97,12 @@ export const ResendOtp = ({ email, purpose }) => (dispatch) => {
 
 export const SubmitLogin = ({ email, password }) => (dispatch) => {
     const url = `${rootUrl}auth/login`;
+    console.log('url', url)
     dispatch({ type: Types.IS_LOGIN_LOADING, payload: true });
     Axios.post(url, { email, password })
         .then((res) => {
             const { success, message, data } = res.data;
+            console.log('data', data)
             if (success) {
                 storeData("access_token", data.token);
                 storeData("user", data.user);
@@ -114,13 +116,24 @@ export const SubmitLogin = ({ email, password }) => (dispatch) => {
             dispatch({ type: Types.IS_LOGIN_LOADING, payload: false });
         })
         .catch((err) => {
-            const message = err?.response?.data?.message || err.message || "Login failed";
-            showToast("error", message);
+            console.log('err', err);
+            const responseData = err?.response?.data;
+            const message = responseData?.message || err.message || "Login failed";
+            if (responseData?.data?.requiresVerification) {
+                dispatch({ type: Types.SET_PENDING_EMAIL, payload: responseData.data.email || email });
+                dispatch({ type: Types.REQUIRES_EMAIL_VERIFICATION, payload: true });
+                showToast("info", message);
+            } else {
+                showToast("error", message);
+            }
             dispatch({ type: Types.IS_LOGIN_LOADING, payload: false });
         });
 };
 export const FalseLoginSubmitted = () => (dispatch) => {
     dispatch({ type: Types.LOGIN_SUBMITTED, payload: false });
+};
+export const FalseRequiresEmailVerification = () => (dispatch) => {
+    dispatch({ type: Types.REQUIRES_EMAIL_VERIFICATION, payload: false });
 };
 
 // ─── Forgot Password ──────────────────────────────────────────────────────────
