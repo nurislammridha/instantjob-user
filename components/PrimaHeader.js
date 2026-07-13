@@ -13,7 +13,9 @@ const styles = StyleSheet.create({
         display: 'flex',
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        paddingTop: 16,
+        paddingBottom: 16
     },
     img: {
         width: 24,

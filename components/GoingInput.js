@@ -14,11 +14,12 @@ const styles = StyleSheet.create({
         height: 24
     },
     input: {
-        width: 300,
+        flex: 1,
         height: 54,
         display: 'flex',
         alignItems: 'center',
         paddingLeft: 40,
+        paddingRight: 16,
         marginLeft: 0,
         color: '#777D88',
         fontSize: 14,
@@ -31,7 +32,9 @@ const GoingInput = ({
     left = 0,
     right = 0,
     value,
-    onChange }) => {
+    onChange,
+    placeholder = 'Search categories in instant job',
+    autoFocus = false }) => {
     return (
         <View style={{ ...styles.container, marginTop: top, marginLeft: left, marginRight: right }}>
             <View style={{
@@ -46,7 +49,8 @@ const GoingInput = ({
                 value={value}
                 onChangeText={onChange}
                 style={styles.input}
-                placeholder='How can we help you?'
+                placeholder={placeholder}
+                autoFocus={autoFocus}
             />
         </View>
     )

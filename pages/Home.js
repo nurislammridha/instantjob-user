@@ -19,6 +19,7 @@ import { SET_USER } from '../redux/_redux/Types'
 const windowWidth = Dimensions.get('window').width
 
 const FALLBACK_ICONS = [car, watch, preferences, pointer, payment, star]
+const CARD_COLORS = ['#EAF2FF', '#FFF1E6', '#EAFBF1', '#F3EAFF', '#FFEAF0', '#EAF7FF']
 
 const SERVICE_OPTIONS = [
     {
@@ -148,41 +149,40 @@ const styles = StyleSheet.create({
     categoryGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'space-between',
-        marginTop: 10
+        marginTop: 10,
+        marginHorizontal: -6
+    },
+    categoryCardSlot: {
+        width: '50%',
+        padding: 6
     },
     categoryCard: {
-        width: (windowWidth - 60) / 3,
         backgroundColor: '#fff',
-        borderRadius: 14,
-        paddingVertical: 14,
-        paddingHorizontal: 8,
-        marginBottom: 12,
+        borderRadius: 8,
         borderWidth: 1,
         borderColor: '#E3EAF4',
-        alignItems: 'center'
+        overflow: 'hidden'
     },
     categoryIconWrap: {
-        width: 42,
-        height: 42,
-        borderRadius: 10,
-        backgroundColor: '#EAF2FF',
+        width: '100%',
+        aspectRatio: 1,
         alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 8
+        justifyContent: 'center'
     },
     categoryIcon: {
-        width: 22,
-        height: 22,
+        width: 40,
+        height: 40,
         resizeMode: 'contain',
         tintColor: '#0A5CC1'
     },
     categoryApiIcon: {
-        width: 42,
-        height: 42,
-        borderRadius: 10,
-        marginBottom: 8,
+        width: '100%',
+        aspectRatio: 1,
         resizeMode: 'cover'
+    },
+    categoryTitleWrap: {
+        paddingHorizontal: 8,
+        paddingVertical: 8
     },
     flowSection: {
         marginTop: 8,
@@ -280,7 +280,13 @@ const Home = ({ navigation, route }) => {
                         left={20}
                         right={20}
                         value={searchTerm}
-                        onChange={setSearchTerm}
+                        onChange={(text) => {
+                            setSearchTerm(text)
+                            if (text.trim().length > 0) {
+                                navigation.navigate('AllCategories', { searchTerm: text })
+                                setSearchTerm('')
+                            }
+                        }}
                     />
 
                     <View style={styles.serviceSection}>
@@ -352,23 +358,27 @@ const Home = ({ navigation, route }) => {
                                 {displayCategories.map((cat, idx) => {
                                     const hasImage = cat.img && cat.img.url
                                     const fallbackIcon = FALLBACK_ICONS[idx % FALLBACK_ICONS.length]
+                                    const bgColor = CARD_COLORS[idx % CARD_COLORS.length]
                                     return (
-                                        <TouchableOpacity key={cat._id} activeOpacity={0.9} style={styles.categoryCard}>
-                                            {hasImage ? (
-                                                <Image source={{ uri: cat.img.url }} style={styles.categoryApiIcon} />
-                                            ) : (
-                                                <View style={styles.categoryIconWrap}>
-                                                    <Image source={fallbackIcon} style={styles.categoryIcon} />
+                                        <View key={cat._id} style={styles.categoryCardSlot}>
+                                            <TouchableOpacity activeOpacity={0.9} style={styles.categoryCard}>
+                                                {hasImage ? (
+                                                    <Image source={{ uri: cat.img.url }} style={styles.categoryApiIcon} />
+                                                ) : (
+                                                    <View style={[styles.categoryIconWrap, { backgroundColor: bgColor }]}>
+                                                        <Image source={fallbackIcon} style={styles.categoryIcon} />
+                                                    </View>
+                                                )}
+                                                <View style={styles.categoryTitleWrap}>
+                                                    <PrimaText
+                                                        content={cat.categoryName}
+                                                        size={12}
+                                                        weight='600'
+                                                        color='#223B5D'
+                                                    />
                                                 </View>
-                                            )}
-                                            <PrimaText
-                                                content={cat.categoryName}
-                                                size={13}
-                                                weight='600'
-                                                align='center'
-                                                color='#223B5D'
-                                            />
-                                        </TouchableOpacity>
+                                            </TouchableOpacity>
+                                        </View>
                                     )
                                 })}
                             </View>

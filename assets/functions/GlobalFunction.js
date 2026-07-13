@@ -1,5 +1,5 @@
 import Geolocation from "@react-native-community/geolocation";
-const GOOGLE_API_KEY = "AIzaSyC4RmBatj2__W-ZMZHra9tQP1jYtimKp_4"; // Replace with your API Key
+const GOOGLE_API_KEY = "AIzaSyAH-xKBY4dUdRj7cYtEqIZDB1cSMbwAGbg"; // Replace with your API Key
 import { PermissionsAndroid, Platform } from "react-native";
 // Function to request location permissions
 export const requestLocationPermission = async () => {
