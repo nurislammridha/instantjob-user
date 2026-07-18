@@ -16,6 +16,7 @@ import { launchImageLibrary } from 'react-native-image-picker'
 import PrimaText from '../components/PrimaText'
 import man from '../assets/images/man.png'
 import { UpdateProfile } from '../redux/_redux/ProfileAction'
+import { uploadImageToCloudinary } from '../assets/functions/cloudinary'
 
 const styles = StyleSheet.create({
     container: {
@@ -55,6 +56,17 @@ const styles = StyleSheet.create({
         borderRadius: 48,
         borderWidth: 3,
         borderColor: '#0A5CC1'
+    },
+    avatarUploadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     editBadge: {
         position: 'absolute',
@@ -133,25 +145,36 @@ const ProfilePage = ({ navigation }) => {
     const [name, setName] = useState('')
     const [phone, setPhone] = useState('')
     const [avatarUri, setAvatarUri] = useState(null)
-    const [avatarBase64, setAvatarBase64] = useState(null)
+    const [avatar, setAvatar] = useState(null)
+    const [isAvatarUploading, setIsAvatarUploading] = useState(false)
 
     useEffect(() => {
         if (user) {
             setName(user.name || '')
             setPhone(user.phone || '')
             setAvatarUri(user.avatar?.url || null)
+            setAvatar(null)
         }
     }, [user])
 
     const openImagePicker = () => {
         launchImageLibrary(
-            { mediaType: 'photo', includeBase64: true, maxWidth: 600, maxHeight: 600, quality: 0.8 },
-            (response) => {
+            { mediaType: 'photo', maxWidth: 600, maxHeight: 600, quality: 0.8 },
+            async (response) => {
                 if (response.didCancel || response.errorCode) return
                 const asset = response.assets && response.assets[0]
-                if (asset) {
-                    setAvatarUri(asset.uri)
-                    setAvatarBase64(`data:${asset.type};base64,${asset.base64}`)
+                if (!asset) return
+
+                setAvatarUri(asset.uri)
+                setIsAvatarUploading(true)
+                try {
+                    const uploaded = await uploadImageToCloudinary(asset)
+                    setAvatar(uploaded)
+                } catch (e) {
+                    Alert.alert('Upload Failed', 'Could not upload the photo. Please try again.')
+                    setAvatarUri(user?.avatar?.url || null)
+                } finally {
+                    setIsAvatarUploading(false)
                 }
             }
         )
@@ -200,7 +223,7 @@ const ProfilePage = ({ navigation }) => {
     const handleSave = () => {
         if (!name.trim()) return
         dispatch(
-            UpdateProfile({ name: name.trim(), phone, avatarBase64 }, () => {
+            UpdateProfile({ name: name.trim(), phone, avatar }, () => {
                 navigation.goBack()
             })
         )
@@ -224,11 +247,17 @@ const ProfilePage = ({ navigation }) => {
 
             <ScrollView style={styles.body} keyboardShouldPersistTaps='handled'>
                 <View style={styles.avatarSection}>
-                    <TouchableOpacity style={styles.avatarWrap} activeOpacity={0.85} onPress={handlePickImage}>
+                    <TouchableOpacity style={styles.avatarWrap} activeOpacity={0.85} onPress={handlePickImage} disabled={isAvatarUploading}>
                         <Image source={avatarSource} style={styles.avatar} />
-                        <View style={styles.editBadge}>
-                            <PrimaText content='✎' size={13} color='#fff' />
-                        </View>
+                        {isAvatarUploading ? (
+                            <View style={styles.avatarUploadingOverlay}>
+                                <ActivityIndicator color='#fff' />
+                            </View>
+                        ) : (
+                            <View style={styles.editBadge}>
+                                <PrimaText content='✎' size={13} color='#fff' />
+                            </View>
+                        )}
                     </TouchableOpacity>
                     <PrimaText content='Tap photo to change' size={12} weight='400' color='#8A9BB5' top={8} />
                 </View>
@@ -273,10 +302,10 @@ const ProfilePage = ({ navigation }) => {
                         <PrimaText content='Cancel' size={15} weight='600' color='#607089' />
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.btnSave, isProfileLoading && styles.btnSaveDisabled]}
+                        style={[styles.btnSave, (isProfileLoading || isAvatarUploading) && styles.btnSaveDisabled]}
                         activeOpacity={0.85}
                         onPress={handleSave}
-                        disabled={isProfileLoading}
+                        disabled={isProfileLoading || isAvatarUploading}
                     >
                         {isProfileLoading ? (
                             <ActivityIndicator color='#fff' />

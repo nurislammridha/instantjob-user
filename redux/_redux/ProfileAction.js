@@ -4,14 +4,14 @@ import { rootUrl } from "../../assets/functions/env";
 import { storeData } from "../../assets/functions/helperFunction";
 import { showToast } from "../../assets/utils/ToastHelper";
 
-export const UpdateProfile = ({ name, phone, avatarBase64 }, onSuccess) => (dispatch) => {
+export const UpdateProfile = ({ name, phone, avatar }, onSuccess) => (dispatch) => {
     const url = `${rootUrl}user/profile`;
     dispatch({ type: Types.IS_PROFILE_LOADING, payload: true });
 
     const payload = {};
     if (name) payload.name = name;
     if (phone !== undefined) payload.phone = phone;
-    if (avatarBase64) payload.avatarBase64 = avatarBase64;
+    if (avatar) payload.avatar = avatar;
 
     Axios.put(url, payload)
         .then((res) => {
