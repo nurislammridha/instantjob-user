@@ -171,7 +171,9 @@ const ProfilePage = ({ navigation }) => {
                     const uploaded = await uploadImageToCloudinary(asset)
                     setAvatar(uploaded)
                 } catch (e) {
-                    Alert.alert('Upload Failed', 'Could not upload the photo. Please try again.')
+                    const detail = e?.response?.data?.error?.message || e?.message || 'Unknown error'
+                    console.log('Cloudinary upload error:', e?.response?.data || e?.message || e)
+                    Alert.alert('Upload Failed', detail)
                     setAvatarUri(user?.avatar?.url || null)
                 } finally {
                     setIsAvatarUploading(false)
